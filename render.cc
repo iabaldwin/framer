@@ -1,118 +1,102 @@
-/*******************************************************************************************
-*
-*   raylib [core] example - Picking in 3d mode
-*
-*   Example originally created with raylib 1.3, last time updated with raylib 4.0
-*
-*   Example licensed under an unmodified zlib/libpng license, which is an OSI-certified,
-*   BSD-like license that allows static linking with closed source software
-*
-*   Copyright (c) 2015-2023 Ramon Santamaria (@raysan5)
-*
-********************************************************************************************/
-
+#include <cmath>
+#include <iostream>
 #include "raylib.h"
+
+void draw_world() {
+  DrawSphereWires({0, 0, 0}, 10.f, 25, 25, LIGHTGRAY);
+}
+
+struct System {
+  System() : x{0}, y{0}, z{0} {}
+  float x;
+  float y;
+  float z;
+  std::string reference{""};
+};
+
+void draw_coordinate_system(const System & system) {
+  Vector3 centre{system.x, system.y, system.z};
+  Vector3 X{0, 0, 1};
+  DrawLine3D(centre, X, RED);
+  Vector3 Y{0, 1, 0};
+  DrawLine3D(centre, Y, GREEN);
+  Vector3 Z{1, 0, 0};
+  DrawLine3D(centre, Z, BLUE);
+}
 
 //------------------------------------------------------------------------------------
 // Program main entry point
 //------------------------------------------------------------------------------------
 int main(void)
 {
-	// Initialization
-	//--------------------------------------------------------------------------------------
-	const int screenWidth = 800;
-	const int screenHeight = 450;
+    // Initialization
+    //--------------------------------------------------------------------------------------
+    const int screenWidth = 800;
+    const int screenHeight = 450;
 
-	InitWindow(screenWidth, screenHeight, "raylib [core] example - 3d picking");
+    InitWindow(screenWidth, screenHeight, "raylib [core] example - 3d camera free");
 
-	// Define the camera to look into our 3d world
-	Camera camera = { 0 };
-	camera.position = (Vector3){ 10.0f, 10.0f, 10.0f }; // Camera position
-	camera.target = (Vector3){ 0.0f, 0.0f, 0.0f };      // Camera looking at point
-	camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
-	camera.fovy = 45.0f;                                // Camera field-of-view Y
-	camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
+    // Define the camera to look into our 3d world
+    Camera3D camera = { 0 };
+    camera.position = (Vector3){ 10.0f, 10.0f, 10.0f }; // Camera position
+    camera.target = (Vector3){ 0.0f, 0.0f, 0.0f };      // Camera looking at point
+    camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
+    camera.fovy = 45.0f;                                // Camera field-of-view Y
+    camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
 
-	Vector3 cubePosition = { 0.0f, 1.0f, 0.0f };
-	Vector3 cubeSize = { 2.0f, 2.0f, 2.0f };
+    Vector3 cubePosition = { 0.0f, 0.0f, 0.0f };
 
-	Ray ray = { 0 };                    // Picking line ray
-	RayCollision collision = { 0 };     // Ray collision hit info
+    DisableCursor();                    // Limit cursor to relative movement inside the window
 
-	SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
-																			//--------------------------------------------------------------------------------------
+    SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
+    //--------------------------------------------------------------------------------------
 
-																			// Main game loop
-	while (!WindowShouldClose())        // Detect window close button or ESC key
-	{
-		// Update
-		//----------------------------------------------------------------------------------
-		if (IsCursorHidden()) UpdateCamera(&camera, CAMERA_FIRST_PERSON);
+    // Main game loop
+    while (!WindowShouldClose())        // Detect window close button or ESC key
+    {
+        // Update
+        //----------------------------------------------------------------------------------
+        UpdateCamera(&camera, CAMERA_FREE);
 
-		// Toggle camera controls
-		if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
-		{
-			if (IsCursorHidden()) EnableCursor();
-			else DisableCursor();
-		}
+        if (IsKeyDown('Z')) camera.target = (Vector3){ 0.0f, 0.0f, 0.0f };
+        //----------------------------------------------------------------------------------
 
-		if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-		{
-			if (!collision.hit)
-			{
-				ray = GetMouseRay(GetMousePosition(), camera);
+        // Draw
+        //----------------------------------------------------------------------------------
+        BeginDrawing();
 
-				// Check collision between ray and box
-				collision = GetRayCollisionBox(ray,
-						(BoundingBox){(Vector3){ cubePosition.x - cubeSize.x/2, cubePosition.y - cubeSize.y/2, cubePosition.z - cubeSize.z/2 },
-						(Vector3){ cubePosition.x + cubeSize.x/2, cubePosition.y + cubeSize.y/2, cubePosition.z + cubeSize.z/2 }});
-			}
-			else collision.hit = false;
-		}
-		//----------------------------------------------------------------------------------
+            ClearBackground(RAYWHITE);
 
-		// Draw
-		//----------------------------------------------------------------------------------
-		BeginDrawing();
+            BeginMode3D(camera);
 
-		ClearBackground(RAYWHITE);
+                //DrawCube(cubePosition, 2.0f, 2.0f, 2.0f, RED);
+                //DrawCubeWires(cubePosition, 2.0f, 2.0f, 2.0f, MAROON);
+                //DrawGrid(10, 1.0f);
+                draw_world();
 
-		BeginMode3D(camera);
+                System s;
+                draw_coordinate_system(s);
 
-		if (collision.hit)
-		{
-			DrawCube(cubePosition, cubeSize.x, cubeSize.y, cubeSize.z, RED);
-			DrawCubeWires(cubePosition, cubeSize.x, cubeSize.y, cubeSize.z, MAROON);
+            EndMode3D();
 
-			DrawCubeWires(cubePosition, cubeSize.x + 0.2f, cubeSize.y + 0.2f, cubeSize.z + 0.2f, GREEN);
-		}
-		else
-		{
-			DrawCube(cubePosition, cubeSize.x, cubeSize.y, cubeSize.z, GRAY);
-			DrawCubeWires(cubePosition, cubeSize.x, cubeSize.y, cubeSize.z, DARKGRAY);
-		}
+            DrawRectangle( 10, 10, 320, 133, Fade(SKYBLUE, 0.5f));
+            DrawRectangleLines( 10, 10, 320, 133, BLUE);
 
-		DrawRay(ray, MAROON);
-		DrawGrid(10, 1.0f);
+            DrawText("Free camera default controls:", 20, 20, 10, BLACK);
+            DrawText("- Mouse Wheel to Zoom in-out", 40, 40, 10, DARKGRAY);
+            DrawText("- Mouse Wheel Pressed to Pan", 40, 60, 10, DARKGRAY);
+            DrawText("- Alt + Mouse Wheel Pressed to Rotate", 40, 80, 10, DARKGRAY);
+            //DrawText("- Alt + Ctrl + Mouse Wheel Pressed for Smooth Zoom", 40, 100, 10, DARKGRAY);
+            DrawText("- Z to zoom to (0, 0, 0)", 40, 120, 10, DARKGRAY);
 
-		EndMode3D();
+        EndDrawing();
+        //----------------------------------------------------------------------------------
+    }
 
-		DrawText("Try clicking on the box with your mouse!", 240, 10, 20, DARKGRAY);
+    // De-Initialization
+    //--------------------------------------------------------------------------------------
+    CloseWindow();        // Close window and OpenGL context
+    //--------------------------------------------------------------------------------------
 
-		if (collision.hit) DrawText("BOX SELECTED", (screenWidth - MeasureText("BOX SELECTED", 30)) / 2, (int)(screenHeight * 0.1f), 30, GREEN);
-
-		DrawText("Right click mouse to toggle camera controls", 10, 430, 10, GRAY);
-
-		DrawFPS(10, 10);
-
-		EndDrawing();
-		//----------------------------------------------------------------------------------
-	}
-
-	// De-Initialization
-	//--------------------------------------------------------------------------------------
-	CloseWindow();        // Close window and OpenGL context
-												//--------------------------------------------------------------------------------------
-
-	return 0;
+    return 0;
 }
